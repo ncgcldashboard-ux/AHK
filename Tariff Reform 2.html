@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pakistan Tariff Reform Dashboard (FY2026)</title>
+    
+    <!-- Core Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/2.1.0/chartjs-plugin-annotation.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f8fafc; 
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px; 
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        nav a { transition: all 0.2s ease-in-out; }
+        nav a.active { color: #0d9488; border-bottom: 2px solid #0d9488; }
+        nav a:hover:not(.active) { color: #0f766e; }
+
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%;
+            background: #0d9488; cursor: pointer; margin-top: -8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2); border: 2px solid white;
+        }
+        input[type=range].danger-slider::-webkit-slider-thumb { background: #dc2626; }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; cursor: pointer; background: #cbd5e1; border-radius: 3px;
+        }
+
+        @media print {
+            body { background-color: white; }
+            nav, button, .no-print, input[type=range], select { display: none !important; }
+            .chart-container { height: 300px !important; break-inside: avoid; }
+            section { break-inside: avoid; margin-bottom: 2rem; }
+            .shadow-sm, .shadow-lg, .shadow-md { box-shadow: none !important; border: 1px solid #e2e8f0; }
+            h2 { color: #000 !important; }
+        }
+    </style>
+</head>
+<body class="text-gray-700">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50 no-print">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="bg-teal-700 text-white font-bold p-1.5 rounded mr-2">TR</div>
+                    <div>
+                        <span class="text-xl font-bold text-gray-900 tracking-tight block leading-none">Tariff Reform</span>
+                        <span class="text-xs font-medium text-gray-500 block leading-none mt-0.5">FY2026 Proposal</span>
+                    </div>
+                </div>
+                <div class="hidden lg:flex space-x-6">
+                    <a href="#overview" class="font-medium text-gray-600 py-4 nav-item">Overview</a>
+                    <a href="#inaction" class="font-medium text-red-600 py-4 nav-item">Risk of Inaction</a>
+                    <a href="#problem" class="font-medium text-gray-600 py-4 nav-item">Seasonal Data</a>
+                    <a href="#solution" class="font-medium text-gray-600 py-4 nav-item">The Solution</a>
+                    <a href="#tou" class="font-medium text-gray-600 py-4 nav-item">ToU Regimes</a>
+                    <a href="#calculator" class="font-medium text-gray-600 py-4 nav-item">Calculator</a>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="window.print()" class="hidden md:inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
+                        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        Print PDF
+                    </button>
+                    <button id="mobile-menu-btn" class="lg:hidden text-gray-600 p-2 rounded-md hover:bg-gray-100">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="hidden lg:hidden bg-white shadow-lg border-t border-gray-100 absolute w-full">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="#overview" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 nav-item">Overview</a>
+                <a href="#inaction" class="block px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50 nav-item">Risk of Inaction</a>
+                <a href="#problem" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 nav-item">Seasonal Data</a>
+                <a href="#solution" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 nav-item">The Solution</a>
+                <a href="#tou" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 nav-item">ToU Regimes</a>
+                <a href="#calculator" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 nav-item">Calculator</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+
+        <!-- OVERVIEW -->
+        <section id="overview" class="mb-16 scroll-mt-24">
+            <div class="bg-gradient-to-br from-teal-50 to-white border border-teal-100 p-8 rounded-2xl shadow-sm">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Executive Summary: Two-Tiered Tariff Reform</h2>
+                <div class="prose max-w-none text-gray-600">
+                    <p class="text-lg leading-relaxed mb-4">
+                        Pakistan's power sector faces a <span class="font-semibold text-red-600">"Grid Defection Spiral."</span> High fixed capacity costs are currently recovered through volumetric (per-kWh) charges. This pushes high-value consumers to Behind-the-Meter (BTM) solar, shrinking the grid's sales base and forcing tariffs even higher for those who remain.
+                    </p>
+                    <p class="text-lg leading-relaxed mb-6">
+                        To arrest this, we propose a <strong>Voluntary Two-Tiered Tariff Regime (Jan 2026)</strong>. Existing consumers can choose to stay on the legacy tariff or switch to a structure that separates <strong>Capacity Subscription</strong> (Fixed) from <strong>Marginal Energy Cost</strong> (Variable).
+                    </p>
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r">
+                        <p class="font-semibold text-blue-800">New Daytime Opportunity (07:00 - 15:00):</p>
+                        <p class="text-blue-700 text-sm">We have expanded the "Sunshine" window to start at 7:00 AM, capturing the early solar ramp-up. This significantly lowers the effective marginal cost during the day.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RISK OF INACTION (URGENCY) -->
+        <section id="inaction" class="mb-16 scroll-mt-24">
+            <div class="bg-red-50 border-l-4 border-red-500 p-8 rounded-r-xl shadow-sm">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                    <div>
+                        <h2 class="text-3xl font-bold text-red-800">The "Death Spiral" Simulator</h2>
+                        <p class="text-red-700 text-sm mt-1">What happens if we do nothing?</p>
+                    </div>
+                    <span class="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-red-400 mt-2 md:mt-0 no-print">INTERACTIVE</span>
+                </div>
+                
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-red-100">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6 no-print">
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="text-sm font-medium text-gray-700">Annual Fixed Cost Growth</label>
+                                <span id="val-inflation" class="font-bold text-gray-900">10%</span>
+                            </div>
+                            <input type="range" id="slider-inflation" min="5" max="20" value="10" class="w-full">
+                            <p class="text-xs text-gray-500 mt-1">Driven by capacity payments, currency devaluation, & T&D costs.</p>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <label class="text-sm font-medium text-red-700 font-bold">Annual Grid Defection Rate</label>
+                                <span id="val-defection" class="font-bold text-red-600">5%</span>
+                            </div>
+                            <input type="range" id="slider-defection" min="0" max="15" value="5" class="w-full danger-slider">
+                            <p class="text-xs text-red-400 mt-1">Percentage of demand leaving the grid (Solar/BTM) per year.</p>
+                        </div>
+                    </div>
+
+                    <div class="chart-container h-80 relative">
+                        <canvas id="inactionChart"></canvas>
+                        <div id="tipping-point-warning" class="absolute top-4 right-4 bg-red-600 text-white p-3 rounded shadow-lg text-sm hidden">
+                            ⚠️ Tariff crosses <strong>Rs 60</strong> in <span id="tipping-year">2028</span>!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- THE PROBLEM (SEASONAL DATA) -->
+        <section id="problem" class="mb-16 scroll-mt-24">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-bold text-gray-900">Seasonal Cost Analysis</h2>
+                <div class="flex items-center space-x-2 bg-gray-200 p-1 rounded-lg no-print">
+                    <button class="px-4 py-1.5 text-sm font-semibold rounded-md shadow-sm bg-white text-gray-900 transition focus:outline-none" id="btn-summer">Summer (July)</button>
+                    <button class="px-4 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition focus:outline-none" id="btn-winter">Winter (Oct)</button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-xs font-bold text-teal-600 uppercase tracking-wide mb-1">Daytime Opportunity (07-15)</div>
+                    <div class="text-sm font-medium text-gray-500">Avg. Day Cost (8 hrs)</div>
+                    <div class="mt-1 flex items-baseline">
+                        <span class="text-4xl font-extrabold text-teal-700" id="kpi-day-cost">Rs 10.13</span>
+                        <span class="ml-2 text-lg font-medium text-gray-500">/ kWh</span>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-400" id="kpi-day-desc">Driven by solar surplus.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-xs font-bold text-red-600 uppercase tracking-wide mb-1">Peak Constraint</div>
+                    <div class="text-sm font-medium text-gray-500">Avg. Peak Cost (20-01)</div>
+                    <div class="mt-1 flex items-baseline">
+                        <span class="text-4xl font-extrabold text-red-700" id="kpi-peak-cost">Rs 20.57</span>
+                        <span class="ml-2 text-lg font-medium text-gray-500">/ kWh</span>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-400">Gas/RFO thermal generation.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-1">System Load</div>
+                    <div class="text-sm font-medium text-gray-500">Avg. Hourly Demand</div>
+                    <div class="mt-1 flex items-baseline">
+                        <span class="text-4xl font-extrabold text-gray-900" id="kpi-demand">~21k</span>
+                        <span class="ml-2 text-lg font-medium text-gray-500">MW</span>
+                    </div>
+                    <p class="mt-2 text-xs text-gray-400">System load profile.</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Demand vs. Marginal Cost (24h Profile)</h3>
+                <p class="text-sm text-gray-500 mb-6">Observe the "Duck Curve" where costs are lowest when solar generation peaks.</p>
+                <div class="chart-container">
+                    <canvas id="seasonalChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- THE SOLUTION -->
+        <section id="solution" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">The Solution: A Voluntary Choice</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Option A -->
+                <div class="bg-gray-50 border border-gray-200 p-8 rounded-xl opacity-80 hover:opacity-100 transition">
+                    <h3 class="text-xl font-bold text-gray-600 mb-2">Option A: Legacy Tariff</h3>
+                    <p class="text-sm text-gray-500 mb-6">Status quo. Costs are bundled into a single high rate.</p>
+                    <ul class="space-y-4">
+                        <li class="flex items-center">
+                            <span class="h-6 w-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold mr-3">1</span>
+                            <span class="text-gray-700"><strong>High Variable Rate</strong> (~Rs 35-40/kWh)</span>
+                        </li>
+                        <li class="flex items-center">
+                            <span class="h-6 w-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold mr-3">2</span>
+                            <span class="text-gray-700">No incentive to increase production.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Option B -->
+                <div class="bg-white border-2 border-teal-500 p-8 rounded-xl shadow-lg relative transform md:scale-105 transition hover:shadow-xl">
+                    <div class="absolute top-0 right-0 bg-teal-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-md">RECOMMENDED</div>
+                    <h3 class="text-xl font-bold text-teal-800 mb-2">Option B: Two-Tiered Regime</h3>
+                    <p class="text-sm text-gray-500 mb-6">Capacity Subscription + Smart Marginal Pricing.</p>
+                    <ul class="space-y-4">
+                        <li class="flex items-start">
+                            <span class="h-6 w-6 rounded-full bg-teal-100 text-teal-700 flex-shrink-0 flex items-center justify-center text-xs font-bold mr-3 mt-0.5">1</span>
+                            <div>
+                                <span class="text-gray-900 font-bold">Fixed: Capacity Subscription</span>
+                                <p class="text-xs text-gray-500 mt-0.5">Transparently covers fixed costs.</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="h-6 w-6 rounded-full bg-teal-100 text-teal-700 flex-shrink-0 flex items-center justify-center text-xs font-bold mr-3 mt-0.5">2</span>
+                            <div>
+                                <span class="text-gray-900 font-bold">Variable: Smart ToU Pricing</span>
+                                <p class="text-xs text-teal-600 font-semibold mt-0.5">See new 4-zone structure below.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- NEW: TIME OF USE SECTION -->
+        <section id="tou" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">Smart Time-of-Use (ToU) Tariffs</h2>
+            <p class="text-gray-600 mb-8 max-w-3xl">Under the Two-Tiered Regime, energy is priced dynamically based on real-time system conditions. We introduce four distinct tariff windows to maximize efficiency.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-center">
+                    <div class="text-xs font-bold text-yellow-700 uppercase mb-1">Sunshine Tariff</div>
+                    <div class="text-2xl font-bold text-yellow-600">07:00 - 15:00</div>
+                    <p class="text-xs text-gray-500 mt-2">Lowest Cost. Maximize usage here.</p>
+                </div>
+                <div class="bg-orange-50 border border-orange-200 p-4 rounded-lg text-center">
+                    <div class="text-xs font-bold text-orange-700 uppercase mb-1">Shoulder Tariff</div>
+                    <div class="text-2xl font-bold text-orange-600">15:00 - 20:00</div>
+                    <p class="text-xs text-gray-500 mt-2">Transition period.</p>
+                </div>
+                <div class="bg-red-50 border border-red-200 p-4 rounded-lg text-center">
+                    <div class="text-xs font-bold text-red-700 uppercase mb-1">Peak Tariff</div>
+                    <div class="text-2xl font-bold text-red-600">20:00 - 01:00</div>
+                    <p class="text-xs text-gray-500 mt-2">Highest Cost. Minimize usage.</p>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg text-center">
+                    <div class="text-xs font-bold text-blue-700 uppercase mb-1">Midnight Tariff</div>
+                    <div class="text-2xl font-bold text-blue-600">01:00 - 07:00</div>
+                    <p class="text-xs text-gray-500 mt-2">Standard base load cost.</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Marginal Cost by Time Zone (Seasonal Analysis)</h3>
+                <p class="text-sm text-gray-500 mb-6">Switch between Summer and Winter (above) to see how the "Sunshine" advantage changes.</p>
+                <div class="chart-container">
+                    <canvas id="touChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- CALCULATOR -->
+        <section id="calculator" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Blended Impact Calculator</h2>
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden p-8">
+                <!-- Controls -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 no-print">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Select Season Profile</label>
+                        <select id="calc-season" class="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                            <option value="summer">Summer (July - Cheap Morning Solar)</option>
+                            <option value="winter">Winter (Oct - Higher Morning Peak)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Consumer Type</label>
+                        <select id="calc-type" class="w-full p-2 border border-gray-300 rounded-md focus:ring-teal-500 focus:border-teal-500">
+                            <option value="ind">Industrial (B3)</option>
+                            <option value="com">Commercial (A2)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Sanctioned Load (kW)</label>
+                            <input type="number" id="calc-load" value="500" class="w-full p-2 border border-gray-300 rounded-md">
+                        </div>
+                        <div class="no-print">
+                            <div class="flex justify-between mb-1">
+                                <label class="block text-sm font-medium text-gray-700">Monthly Consumption</label>
+                                <span id="calc-cons-display" class="font-bold text-teal-600">60,000 kWh</span>
+                            </div>
+                            <input type="range" id="calc-slider" min="10000" max="150000" step="1000" value="60000" class="w-full">
+                        </div>
+                    </div>
+
+                    <div class="bg-teal-50 border border-teal-200 rounded-xl p-6 space-y-4">
+                        <div class="flex justify-between items-center pb-4 border-b border-teal-200">
+                            <span class="text-gray-600">Fixed Subscription Cost</span>
+                            <span id="out-fixed" class="font-bold text-gray-900">Rs 1,000,000</span>
+                        </div>
+                        <div class="flex justify-between items-center pb-4 border-b border-teal-200">
+                            <span class="text-gray-600">Variable Energy Cost</span>
+                            <span id="out-variable" class="font-bold text-gray-900">Rs 990,000</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-2">
+                            <span class="text-xl font-bold text-teal-900">Total Bill</span>
+                            <span id="out-total" class="text-xl font-bold text-teal-700">Rs 1,990,000</span>
+                        </div>
+                        <div class="mt-4 bg-white p-4 rounded-lg shadow-sm text-center">
+                            <p class="text-xs text-gray-500 uppercase tracking-wide">Effective Tariff (Rs/kWh)</p>
+                            <p id="out-effective" class="text-4xl font-extrabold text-teal-600">33.17</p>
+                            <p class="text-xs text-gray-400 mt-1">Vs Legacy Rate ~Rs 40.00</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ROLLOUT -->
+        <section id="eligibility" class="mb-20 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">Phased Rollout Plan</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-white border-l-4 border-teal-500 p-6 rounded-r-xl shadow-md">
+                    <span class="text-xs font-bold text-teal-500 uppercase tracking-wide">Phase 1 (Immediate)</span>
+                    <h3 class="text-xl font-bold text-gray-900 mt-2 mb-4">Industrial & Commercial</h3>
+                    <ul class="list-disc list-inside text-gray-600 space-y-2">
+                        <li>All Industrial (B1-B4) consumers.</li>
+                        <li>All Commercial consumers.</li>
+                        <li>Existing Net Metering consumers.</li>
+                    </ul>
+                </div>
+                <div class="bg-white border-l-4 border-gray-300 p-6 rounded-r-xl shadow-md">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Phase 2 (Follow-on)</span>
+                    <h3 class="text-xl font-bold text-gray-900 mt-2 mb-4">Domestic Expansion</h3>
+                    <ul class="list-disc list-inside text-gray-600 space-y-2">
+                        <li>Open to all Non-Protected Domestic consumers.</li>
+                        <li><strong>Requirement:</strong> Installation of a ToU meter.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-900 text-white py-12 no-print">
+        <div class="container mx-auto px-4 text-center">
+            <p class="font-semibold text-lg">Power Sector Policy Division</p>
+            <p class="text-gray-400 text-sm mt-2">Confidential Policy Proposal | FY2026 Tariff Rebasing</p>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- DATA ---
+        const SUMMER_DATA = {
+            day_cost: 10.13, peak_cost: 20.57, off_cost: 18.20,
+            demand: [21193, 20759, 20398, 19898, 19229, 18754, 17342, 16298, 16302, 16878, 17001, 17025, 17050, 17010, 16980, 17200, 17800, 18500, 19500, 20070, 20800, 21500, 21400, 21300],
+            marginal: [24,22,20,19,16,15,11,8,8,10,11,11,11,11,11,12,13,16,20,21,22,25,24,24]
+        };
+
+        const WINTER_DATA = {
+            day_cost: 14.55, peak_cost: 24.50, off_cost: 21.00,
+            demand: [15174, 14956, 14623, 14287, 13867, 13889, 13589, 12704, 11949, 11467, 11200, 11100, 11000, 10900, 10800, 11000, 11500, 12800, 14500, 15200, 14800, 14200, 13800, 14500],
+            marginal: [24.7, 23.9, 22.1, 19.9, 18.4, 19.5, 21.2, 19.5, 15.8, 14.5, 13.5, 13.2, 13.2, 13.2, 13.5, 14.5, 16.0, 19.0, 23.0, 24.5, 25.0, 24.0, 23.5, 24.0]
+        };
+
+        // Zones: Sunshine (7-15), Shoulder (15-20), Peak (20-01), Midnight (01-07)
+        // Indices: Sun [7..14], Shd [15..19], Peak [20..23, 0], Mid [1..6]
+        const TOU_INDICES = {
+            sunshine: [7,8,9,10,11,12,13,14],
+            shoulder: [15,16,17,18,19],
+            peak: [20,21,22,23,0],
+            midnight: [1,2,3,4,5,6]
+        };
+
+        const SUBSCRIPTION_RATE = 2000;
+        const LEGACY_RATE = 40;
+
+        let currentSeason = 'summer';
+        let charts = {};
+
+        if (typeof window['chartjs-plugin-annotation'] !== 'undefined') {
+            Chart.register(window['chartjs-plugin-annotation']);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            initCalculator();
+            initDeathSpiral();
+            
+            document.getElementById('btn-summer').addEventListener('click', () => updateSeason('summer'));
+            document.getElementById('btn-winter').addEventListener('click', () => updateSeason('winter'));
+            document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+                document.getElementById('mobile-menu').classList.toggle('hidden');
+            });
+            
+            // Nav Link Handling
+            document.querySelectorAll('.nav-item').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    const href = link.getAttribute('href');
+                    if(href && href.startsWith('#')) {
+                        document.getElementById('mobile-menu').classList.add('hidden');
+                    }
+                });
+            });
+
+            updateSeason('summer');
+        });
+
+        // Helper to calculate average marginal cost for indices
+        function getAvgMarginal(indices, marginalArray) {
+            let sum = 0;
+            indices.forEach(idx => sum += marginalArray[idx]);
+            return sum / indices.length;
+        }
+
+        function updateSeason(season) {
+            currentSeason = season;
+            const data = season === 'summer' ? SUMMER_DATA : WINTER_DATA;
+            const btnSummer = document.getElementById('btn-summer');
+            const btnWinter = document.getElementById('btn-winter');
+
+            if(season === 'summer') {
+                btnSummer.className = "px-4 py-1.5 text-sm font-semibold rounded-md shadow-sm bg-white text-gray-900 border border-gray-200 transition focus:outline-none";
+                btnWinter.className = "px-4 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition focus:outline-none";
+                document.getElementById('kpi-demand').innerText = "~21k";
+            } else {
+                btnWinter.className = "px-4 py-1.5 text-sm font-semibold rounded-md shadow-sm bg-white text-gray-900 border border-gray-200 transition focus:outline-none";
+                btnSummer.className = "px-4 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 transition focus:outline-none";
+                document.getElementById('kpi-demand').innerText = "~15k";
+            }
+
+            document.getElementById('kpi-day-cost').innerText = "Rs " + data.day_cost.toFixed(2);
+            document.getElementById('kpi-peak-cost').innerText = "Rs " + data.peak_cost.toFixed(2);
+            document.getElementById('kpi-day-desc').innerText = season === 'summer' ? "High Solar Surplus" : "Moderate Solar / Low Demand";
+
+            // Update Seasonal Chart
+            charts.seasonal.data.datasets[0].data = data.demand;
+            charts.seasonal.data.datasets[1].data = data.marginal;
+            charts.seasonal.update();
+
+            // Update ToU Chart
+            const sunAvg = getAvgMarginal(TOU_INDICES.sunshine, data.marginal);
+            const shdAvg = getAvgMarginal(TOU_INDICES.shoulder, data.marginal);
+            const peakAvg = getAvgMarginal(TOU_INDICES.peak, data.marginal);
+            const midAvg = getAvgMarginal(TOU_INDICES.midnight, data.marginal);
+            
+            charts.tou.data.datasets[0].data = [midAvg, sunAvg, shdAvg, peakAvg];
+            charts.tou.update();
+            
+            document.getElementById('calc-season').value = season;
+            const event = new Event('input');
+            document.getElementById('calc-slider').dispatchEvent(event);
+        }
+
+        // --- DEATH SPIRAL SIMULATOR ---
+        function initDeathSpiral() {
+            const ctxSpiral = document.getElementById('inactionChart');
+            const sliderInf = document.getElementById('slider-inflation');
+            const sliderDef = document.getElementById('slider-defection');
+            const valInf = document.getElementById('val-inflation');
+            const valDef = document.getElementById('val-defection');
+            const warningBox = document.getElementById('tipping-point-warning');
+            const yearSpan = document.getElementById('tipping-year');
+
+            const years = [2025, 2026, 2027, 2028, 2029, 2030];
+            const baseTariff = 35; 
+
+            charts.spiral = new Chart(ctxSpiral, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        label: 'Projected Tariff (Rs/kWh)',
+                        data: [],
+                        borderColor: '#dc2626',
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            title: {display:true, text:'Avg. Tariff (Rs/kWh)'},
+                            grid: { color: (ctx) => ctx.tick.value >= 60 ? '#fecaca' : '#e5e7eb' }
+                        }
+                    },
+                    plugins: {
+                        annotation: {
+                            annotations: {
+                                line1: {
+                                    type: 'line',
+                                    yMin: 60,
+                                    yMax: 60,
+                                    borderColor: 'rgb(255, 99, 132)',
+                                    borderWidth: 2,
+                                    borderDash: [10,5],
+                                    label: { content: 'Unaffordability Threshold', enabled: true, position: 'start', backgroundColor: 'rgba(255,99,132,0.8)' }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            function updateSpiral() {
+                const growth = parseInt(sliderInf.value) / 100;
+                const defect = parseInt(sliderDef.value) / 100;
+                valInf.innerText = sliderInf.value + "%";
+                valDef.innerText = sliderDef.value + "%";
+
+                let data = [];
+                let currentT = baseTariff;
+                let tippingYear = null;
+
+                years.forEach((y, i) => {
+                    if (i > 0) {
+                        currentT = currentT * (1 + growth) / (1 - defect);
+                    }
+                    data.push(currentT);
+                    if (currentT > 60 && !tippingYear) tippingYear = y;
+                });
+
+                charts.spiral.data.datasets[0].data = data;
+                charts.spiral.update();
+
+                if (tippingYear) {
+                    warningBox.classList.remove('hidden');
+                    yearSpan.innerText = tippingYear;
+                } else {
+                    warningBox.classList.add('hidden');
+                }
+            }
+
+            sliderInf.addEventListener('input', updateSpiral);
+            sliderDef.addEventListener('input', updateSpiral);
+            updateSpiral();
+        }
+
+        // --- CHARTS INITIALIZATION ---
+        function initCharts() {
+            // Seasonal Chart
+            const ctxSeasonal = document.getElementById('seasonalChart');
+            charts.seasonal = new Chart(ctxSeasonal, {
+                type: 'bar',
+                data: {
+                    labels: Array.from({length:24}, (_,i)=>i),
+                    datasets: [
+                        { label: 'Demand (MW)', data: [], backgroundColor: '#cbd5e1', yAxisID: 'y' },
+                        { label: 'Marginal Cost (Rs)', data: [], type: 'line', borderColor: '#ef4444', borderWidth: 2, yAxisID: 'y1' }
+                    ]
+                },
+                options: { 
+                    maintainAspectRatio: false, 
+                    scales: { y: {display:false}, y1: {position:'right', grid:{display:false}} },
+                    plugins: { tooltip: { mode: 'index', intersect: false } }
+                }
+            });
+
+            // ToU Chart (New)
+            const ctxToU = document.getElementById('touChart');
+            charts.tou = new Chart(ctxToU, {
+                type: 'bar',
+                data: {
+                    labels: ['Midnight (01-07)', 'Sunshine (07-15)', 'Shoulder (15-20)', 'Peak (20-01)'],
+                    datasets: [{
+                        label: 'Avg Marginal Cost (Rs/kWh)',
+                        data: [],
+                        backgroundColor: ['#60a5fa', '#facc15', '#fb923c', '#f87171']
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, title: {display: true, text: 'Rs/kWh'} } },
+                    plugins: { legend: {display: false} }
+                }
+            });
+        }
+
+        // --- CALCULATOR LOGIC ---
+        function initCalculator() {
+            const loadInput = document.getElementById('calc-load');
+            const slider = document.getElementById('calc-slider');
+            const seasonSelect = document.getElementById('calc-season');
+            const consDisplay = document.getElementById('calc-cons-display');
+            
+            function updateCalc() {
+                const load = parseInt(loadInput.value) || 0;
+                const kwh = parseInt(slider.value) || 0;
+                const season = seasonSelect.value;
+                const data = season === 'summer' ? SUMMER_DATA : WINTER_DATA;
+
+                consDisplay.innerText = kwh.toLocaleString() + " kWh";
+                const fixedCost = load * SUBSCRIPTION_RATE;
+                
+                // Weighting based on new ToU zones duration:
+                // Sun(8h)=0.33, Shd(5h)=0.21, Peak(5h)=0.21, Mid(6h)=0.25
+                const sunAvg = getAvgMarginal(TOU_INDICES.sunshine, data.marginal);
+                const shdAvg = getAvgMarginal(TOU_INDICES.shoulder, data.marginal);
+                const peakAvg = getAvgMarginal(TOU_INDICES.peak, data.marginal);
+                const midAvg = getAvgMarginal(TOU_INDICES.midnight, data.marginal);
+
+                const weightedVar = (0.33 * sunAvg) + (0.21 * shdAvg) + (0.21 * peakAvg) + (0.25 * midAvg);
+                
+                const variableCost = kwh * weightedVar;
+                const total = fixedCost + variableCost;
+                const effective = kwh > 0 ? (total / kwh) : 0;
+
+                document.getElementById('out-fixed').innerText = "Rs " + fixedCost.toLocaleString();
+                document.getElementById('out-variable').innerText = "Rs " + Math.round(variableCost).toLocaleString();
+                document.getElementById('out-total').innerText = "Rs " + Math.round(total).toLocaleString();
+                document.getElementById('out-effective').innerText = effective.toFixed(2);
+            }
+
+            loadInput.addEventListener('input', updateCalc);
+            slider.addEventListener('input', updateCalc);
+            seasonSelect.addEventListener('change', updateCalc);
+            updateCalc();
+        }
+    </script>
+</body>
+</html>
