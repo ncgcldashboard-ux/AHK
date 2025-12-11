@@ -1249,7 +1249,7 @@
         <div class="grid grid-3">
           <div>
             <div class="highlight-label">Total Indicative Pipeline</div>
-            <div class="highlight-value">PKR 7,400m</div>
+            <div class="highlight-value">PKR 6,900m</div>
           </div>
           <div>
             <div class="highlight-label">Institutions Engaged</div>
@@ -1278,42 +1278,94 @@
               <tr>
                 <td>1</td>
                 <td>BIPL</td>
-                <td class="amount">2,000</td>
-                <td>Agri input and LT asset portfolios under design; pilots linked to RAC and SBP schemes.</td>
+                <td class="amount">200</td>
+                <td>Meeting being arranged between NCGCL's legal counsel and BIPL's Shariah and Legal Departments.</td>
               </tr>
               <tr>
                 <td>2</td>
-                <td>PMIC</td>
-                <td class="amount">2,000</td>
-                <td>Wholesale PCG structure agreed in principle; documentation and RAC finalisation in progress.</td>
+                <td>UNIDO / Pak Brunei</td>
+                <td class="amount">200</td>
+                <td>Pak Brunei's final board approval is in process for credit lines to SAFCO and Thardeep.</td>
               </tr>
               <tr>
                 <td>3</td>
-                <td>HBL Microfinance Bank</td>
+                <td>PMIC</td>
                 <td class="amount">1,000</td>
-                <td>PCG + MPO structure aligned with IFC participation; PKR 1,000m PCG (contingent) plus PKR 500m MPO allocation (provisioning offset) pending Board approval and MAGFA execution.</td>
+                <td>MAGFA has been approved by PMIC's legal team.</td>
               </tr>
               <tr>
                 <td>4</td>
-                <td>UNIDO / PBIC / SAFCO / TMF Consortium</td>
-                <td class="amount">200</td>
-                <td>Blended pilot at term sheet stage; consortium agreement under review.</td>
+                <td>KCBL</td>
+                <td class="amount">100</td>
+                <td>NCGCL Board approval is in place.</td>
               </tr>
               <tr>
                 <td>5</td>
-                <td>Other Prospective PFIs</td>
-                <td class="amount">2,200</td>
-                <td>Early-stage discussions for sector-specific PCGs (SME, agri-mechanisation, climate-linked portfolios).</td>
+                <td>Bank Alfalah</td>
+                <td class="amount">1,000</td>
+                <td>The Risk and Business teams are aligned with the concept paper and computation. BAFL to revert with final feedback for incorporation in the Term Sheet; follow-up underway, response expected by 03 Dec 2025.</td>
+              </tr>
+              <tr>
+                <td>6</td>
+                <td>Meezan Bank</td>
+                <td class="amount">1,500</td>
+                <td>Business team aligned with concept paper. Session to be arranged with Finance team to walk through NCGCL guarantee advantages; final feedback to be incorporated in term sheet.</td>
+              </tr>
+              <tr>
+                <td>7</td>
+                <td>JS Bank</td>
+                <td class="amount">500</td>
+                <td>Concept paper under internal review.</td>
+              </tr>
+              <tr>
+                <td>8</td>
+                <td>HBL</td>
+                <td class="amount">1,500</td>
+                <td>MoU signed on 02 Dec 2025.</td>
+              </tr>
+              <tr>
+                <td>9</td>
+                <td>Mashreq Bank</td>
+                <td class="amount">500</td>
+                <td>NDA signed with Mashreq Digital team; they will revert with possible credit line request to be guaranteed by NCGCL.</td>
+              </tr>
+              <tr>
+                <td>10</td>
+                <td>HBL Zarai</td>
+                <td class="amount">300</td>
+                <td>Pilot under discussion whereby supplier credit will be awarded to HBL Zarai from manufacturers of agri inputs; modalities being finalised.</td>
+              </tr>
+              <tr>
+                <td>11</td>
+                <td>BusCaro</td>
+                <td class="amount">100</td>
+                <td>Initial discussions underway to arrange working capital lines partially supported by a credit guarantee.</td>
+              </tr>
+              <tr>
+                <td>12</td>
+                <td>PMN</td>
+                <td class="amount">–</td>
+                <td>MoU content agreed; signature pending. Once signed, PMN to provide platform to introduce NCGCL to MFIs and NBFIs.</td>
+              </tr>
+              <tr>
+                <td>13</td>
+                <td>SEDF</td>
+                <td class="amount">–</td>
+                <td>MoU to be signed; expected in week of 09 Dec 2025 to enable information sharing on prospective deals.</td>
               </tr>
             </tbody>
             <tfoot>
               <tr>
-                <td colspan="2">Total</td>
-                <td class="amount">7,400</td>
                 <td></td>
+                <td><strong>Total</strong></td>
+                <td class="amount">6,900</td>
+                <td>Aggregate indicative pipeline across engaged counterparties.</td>
               </tr>
             </tfoot>
           </table>
+        </div>
+        <div class="footer-note">
+          Note: Amounts are indicative and subject to due diligence, approvals and term sheet finalisation.
         </div>
       </div>
     </section>
@@ -1322,22 +1374,19 @@
 </div>
 
 <script>
-  // Simple navigation logic: show selected section, highlight active button
-  const navButtons = document.querySelectorAll('.nav-btn');
-  const sections = document.querySelectorAll('.section');
-
-  navButtons.forEach(btn => {
+  document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const targetId = btn.getAttribute('data-target');
 
-      navButtons.forEach(b => b.classList.remove('active'));
-      sections.forEach(sec => sec.classList.remove('active'));
-
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      const targetSection = document.getElementById(targetId);
-      if (targetSection) {
-        targetSection.classList.add('active');
-      }
+
+      document.querySelectorAll('.section').forEach(sec => {
+        sec.classList.remove('active');
+        if (sec.id === targetId) {
+          sec.classList.add('active');
+        }
+      });
     });
   });
 </script>
