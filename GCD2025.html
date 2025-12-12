@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NCGCL | Guarantee Transactions – Board Pack</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Tailwind (utility classes only) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js for simple dashboards -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      --ncgcl-blue:#035076;
+      --ncgcl-bg:#ffffff;
+      --ncgcl-bg-soft:#f5f7fa;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+      --shadow: 0 6px 24px rgba(0,0,0,.08);
+      --radius: 16px;
+    }
+    *{font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;}
+    body{background:var(--ncgcl-bg); color:#0f172a; margin:0;}
+    .layout{display:flex; min-height:100vh;}
+    .sidebar{
+      width: 310px; background: #0b2a3a; color:#fff; padding:18px 14px;
+      position: sticky; top:0; height:100vh; overflow:auto;
+      border-right: 1px solid rgba(255,255,255,.06);
+    }
+    .sidebar-header{padding:10px 10px 14px; border-bottom:1px solid rgba(255,255,255,.10); margin-bottom:12px;}
+    .sidebar-title{font-weight:700; letter-spacing:.2px; font-size:14px;}
+    .sidebar-subtitle{opacity:.85; font-size:12px; margin-top:2px;}
+    .sidebar-nav{display:flex; flex-direction:column; gap:8px;}
+    .nav-btn{
+      display:flex; gap:10px; align-items:flex-start;
+      background: rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      padding:10px 10px; border-radius:14px;
+      text-align:left; cursor:pointer;
+      transition: .15s ease;
+    }
+    .nav-btn:hover{background: rgba(255,255,255,.10);}
+    .nav-btn.active{
+      background:#ffffff; color:#0b2a3a;
+      border:1px solid rgba(255,255,255,.0);
+      box-shadow: 0 10px 26px rgba(0,0,0,.18);
+    }
+    .icon{width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:16px; line-height:1;}
+    .content{flex:1; padding:18px 18px 48px; background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);}
+    .page-header{
+      background: #fff; border:1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:18px 18px; margin-bottom:14px;
+    }
+    .page-title{font-size:18px; font-weight:800; color: var(--ncgcl-blue);}
+    .page-subtitle{color: var(--muted); font-size:12.5px; margin-top:6px; line-height:1.35;}
+    .section{
+      background:#fff; border:1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:16px 16px; margin:14px 0;
+    }
+    .section-header{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;}
+    .section-title{font-weight:800; color:#0b2a3a; font-size:15px;}
+    .badge{
+      font-size:12px; font-weight:700;
+      padding:6px 10px; border-radius: 999px;
+      background: rgba(3,80,118,.08);
+      color: var(--ncgcl-blue);
+      border:1px solid rgba(3,80,118,.18);
+      white-space: nowrap;
+    }
+    .grid{display:grid; gap:12px;}
+    .grid-2{grid-template-columns: repeat(2, minmax(0, 1fr));}
+    .grid-3{grid-template-columns: repeat(3, minmax(0, 1fr));}
+    .grid-4{grid-template-columns: repeat(4, minmax(0, 1fr));}
+    @media (max-width: 1100px){
+      .sidebar{display:none;}
+      .grid-3,.grid-4{grid-template-columns: 1fr;}
+      .grid-2{grid-template-columns: 1fr;}
+      .content{padding:12px;}
+    }
+    .card{
+      border:1px solid var(--border); border-radius: 16px;
+      padding:12px 12px; background:#fff;
+    }
+    .card-label{font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.2px; text-transform:uppercase;}
+    .card-value-xl{font-size:18px; font-weight:800; margin-top:6px; color:#0f172a;}
+    .card-body{margin-top:8px; color:#0f172a; font-size:12.5px; line-height:1.45;}
+    .list{list-style: disc; padding-left: 18px; margin: 8px 0 0;}
+    .list li{margin: 4px 0;}
+    .highlight-row{
+      background: linear-gradient(90deg, rgba(3,80,118,.06) 0%, rgba(3,80,118,.02) 55%, rgba(255,255,255,1) 100%);
+      border:1px solid rgba(3,80,118,.14);
+    }
+    .highlight-label{font-size:11px; color:var(--muted); font-weight:800; text-transform:uppercase;}
+    .highlight-value{font-size:12.5px; margin-top:4px; line-height:1.35;}
+    .divider{height:1px; background: var(--border); margin: 12px 0;}
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px; border-radius: 999px;
+      border:1px solid var(--border); background:#fff;
+      font-size:12px; font-weight:700; color:#0f172a;
+    }
+    .chip small{font-weight:800; color:var(--muted);}
+    .muted{color: var(--muted);}
+
+    /* Risk ladder */
+    .ladder-wrap{display:flex; gap:14px; align-items:stretch;}
+    .ladder{
+      width: 240px; border:1px solid var(--border); border-radius: 16px; overflow:hidden; background:#fff;
+    }
+    .ladder-step{
+      padding:12px 12px; border-bottom:1px solid var(--border);
+      cursor:pointer; transition:.12s ease;
+    }
+    .ladder-step:last-child{border-bottom:none;}
+    .ladder-step:hover{background: rgba(3,80,118,.05);}
+    .ladder-step.active{background: rgba(3,80,118,.10);}
+    .ladder-step .t{font-weight:800; font-size:12.5px;}
+    .ladder-step .s{font-size:11.5px; color: var(--muted); margin-top:2px; line-height:1.25;}
+    .ladder-detail{flex:1; border:1px solid var(--border); border-radius:16px; padding:12px 12px; background:#fff;}
+    .ladder-detail h4{margin:0; font-size:13.5px; font-weight:900; color:#0b2a3a;}
+    .ladder-detail p{margin:8px 0 0; font-size:12.5px; line-height:1.45; color:#0f172a;}
+    .ladder-mini{
+      margin-top:10px; padding:10px; border-radius:14px;
+      background: rgba(3,80,118,.06); border:1px solid rgba(3,80,118,.14);
+      font-size:12px; line-height:1.35;
+    }
+
+    /* Dashboard controls */
+    .ctrl-row{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+    select{
+      border:1px solid var(--border); border-radius: 12px; padding:8px 10px;
+      font-size:12.5px; font-weight:700; color:#0f172a; background:#fff;
+    }
+    .kpi{
+      border:1px solid var(--border); border-radius: 16px; padding:10px 10px; background:#fff;
+    }
+    .kpi .k{font-size:11px; color:var(--muted); font-weight:800; text-transform:uppercase;}
+    .kpi .v{font-size:16px; font-weight:900; margin-top:6px;}
+    .kpi .n{font-size:11.5px; color:var(--muted); margin-top:4px;}
+    canvas{max-height:260px;}
+    .note{
+      font-size:11.5px; color:var(--muted); line-height:1.35; margin-top:8px;
+    }
+
+    /* Resolutions list */
+    .resolutions{margin:0; padding-left: 18px;}
+    .resolutions > li{margin: 10px 0;}
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div>
+          <div class="sidebar-title">National Credit Guarantee Company Ltd.</div>
+          <div class="sidebar-subtitle">Guarantee Transactions – Board Pack</div>
+        </div>
+      </div>
+
+      <div class="sidebar-nav">
+        <button class="nav-btn active" data-target="riyadh"><span class="icon">✈️</span><span>1. Learnings from Riyadh</span></button>
+        <button class="nav-btn" data-target="process"><span class="icon">🔄</span><span>2. Guarantee Origination – Process Flow</span></button>
+        <button class="nav-btn" data-target="explainer"><span class="icon">🧩</span><span>3. Guarantee Explainer – Products & Risk Ladder</span></button>
+        <button class="nav-btn" data-target="overview"><span class="icon">📌</span><span>4. Portfolio Overview – Approval Layer</span></button>
+        <button class="nav-btn" data-target="impact"><span class="icon">🎯</span><span>5. Impact Overview – Consolidated</span></button>
+        <button class="nav-btn" data-target="research-bipl"><span class="icon">🌾</span><span>6. Research Dashboard – BIPL (ST + LT)</span></button>
+        <button class="nav-btn" data-target="research-micro"><span class="icon">🏦</span><span>7. Research Dashboard – PMIC + HBL MFB</span></button>
+        <button class="nav-btn" data-target="research-unido"><span class="icon">🌍</span><span>8. Research Dashboard – UNIDO Sindh Consortium</span></button>
+
+        <div class="divider"></div>
+
+        <!-- Transaction slides remain independent -->
+        <button class="nav-btn" data-target="bipl-st"><span class="icon">🌱</span><span>9. BIPL – Agri Input (Short Tenor)</span></button>
+        <button class="nav-btn" data-target="bipl-lt"><span class="icon">🚜</span><span>10. BIPL – LT Agri & Assets</span></button>
+        <button class="nav-btn" data-target="pmic"><span class="icon">🤝</span><span>11. PMIC – Microfinance PCG</span></button>
+        <button class="nav-btn" data-target="hblmfb"><span class="icon">🏛️</span><span>12. HBL Microfinance Bank – PCG & MPO</span></button>
+        <button class="nav-btn" data-target="unido"><span class="icon">🧬</span><span>13. UNIDO – Sindh Consortium</span></button>
+
+        <button class="nav-btn" data-target="risk"><span class="icon">🛡️</span><span>14. Risk & Capital View</span></button>
+        <button class="nav-btn" data-target="resolutions"><span class="icon">✅</span><span>15. Resolutions Summary</span></button>
+        <button class="nav-btn" data-target="shariah"><span class="icon">🕌</span><span>16. Shariah Advisory – Al Hilal</span></button>
+        <button class="nav-btn" data-target="pipeline"><span class="icon">📈</span><span>17. Deal Pipeline – Upcoming Year</span></button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="content">
+      <div class="page-header">
+        <div class="page-title">Guarantee Transactions – Consolidated Board Pack</div>
+        <div class="page-subtitle">
+          Decision-ready overview of proposed guarantee structures spanning agriculture (short & long tenor), microfinance (PMIC and HBL Microfinance Bank),
+          and blended finance (UNIDO Sindh Consortium), with explicit visibility on product type, risk ladder, approval layers, and consolidated impact.
+        </div>
+      </div>
+
+      <!-- 1. LEARNINGS FROM RIYADH -->
+      <section id="riyadh" class="section">
+        <div class="section-header">
+          <div class="section-title">Learnings from Riyadh – Market Signalling & Adoption Constraints</div>
+          <div class="badge">Context for Committee Review</div>
+        </div>
+
+        <div class="grid grid-3">
+          <div class="card">
+            <div class="card-label">New Frontier</div>
+            <div class="card-value-xl">Commercial, Risk-Based Guarantees</div>
+            <div class="card-body">
+              <ul class="list">
+                <li>We are breaking into a new frontier: market-oriented guarantee products priced for risk, not policy compliance.</li>
+                <li>Existing SBP risk coverage is perceived as “free lunch” and typically comes with lighter documentation expectations.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Adoption Challenge</div>
+            <div class="card-value-xl">Changing Incentives</div>
+            <div class="card-body">
+              <ul class="list">
+                <li>Weaning PFIs from free covers toward commercially priced, disciplined risk participation is a structural shift.</li>
+                <li>Progress requires re-orienting decision makers on capital, provisioning and claims discipline—not only coverage %.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-label">Progress to Date</div>
+            <div class="
