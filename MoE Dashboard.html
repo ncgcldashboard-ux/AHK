@@ -1,0 +1,1240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ministry Energy Dashboard — CSC & Marginal Pricing</title>
+
+  <!-- Styling: Tailwind CDN (no build pipeline needed) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Charts: Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* Minor helpers */
+    .tab-active { border-bottom: 2px solid rgb(37 99 235); background: rgb(239 246 255); color: rgb(29 78 216); }
+    .tab-idle { border-bottom: 2px solid transparent; color: rgb(100 116 139); }
+    .tab-idle:hover { background: rgb(248 250 252); color: rgb(51 65 85); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        <div class="flex items-center">
+          <div class="bg-blue-700 text-white px-3 py-2 rounded-lg mr-3 font-bold">⚡</div>
+          <div>
+            <h1 class="text-xl font-bold text-slate-800 tracking-tight">Ministry Energy Dashboard</h1>
+            <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">CSC & Marginal Pricing Framework</p>
+          </div>
+        </div>
+        <div class="hidden md:flex items-center space-x-4">
+          <span class="text-xs bg-green-100 text-green-800 px-3 py-1 rounded-full font-bold">Phase 1: Opt-In Mode</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex space-x-1 overflow-x-auto">
+        <button class="tab px-6 py-3 text-sm font-medium transition-all tab-active" data-tab="background">Strategic Context</button>
+        <button class="tab px-6 py-3 text-sm font-medium transition-all tab-idle" data-tab="csc">CSC Framework</button>
+        <button class="tab px-6 py-3 text-sm font-medium transition-all tab-idle" data-tab="impact">Impact & Savings</button>
+        <button class="tab px-6 py-3 text-sm font-medium transition-all tab-idle" data-tab="tou">TOU Simulation</button>
+        <button class="tab px-6 py-3 text-sm font-medium transition-all tab-idle" data-tab="modulator">Savings Modulator</button>
+        <button class="tab px-6 py-3 text-sm font-medium transition-all tab-idle" data-tab="gen">Generation & Demand</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- BACKGROUND -->
+    <section id="tab-background" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start space-x-4">
+          <div class="p-3 rounded-lg bg-red-500/10 text-red-600 font-bold">▲</div>
+          <div>
+            <h3 class="text-slate-500 text-sm font-medium uppercase tracking-wide">Grid Defection Risk</h3>
+            <p class="text-2xl font-bold text-slate-800 mt-1">High</p>
+            <p class="text-slate-400 text-xs mt-1">Due to high fixed cost recovery in variable rates</p>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start space-x-4">
+          <div class="p-3 rounded-lg bg-amber-500/10 text-amber-600 font-bold">🏭</div>
+          <div>
+            <h3 class="text-slate-500 text-sm font-medium uppercase tracking-wide">Current Industrial Rate</h3>
+            <p class="text-2xl font-bold text-slate-800 mt-1">~39.9 Rs/kWh</p>
+            <p class="text-slate-400 text-xs mt-1">Significantly above regional averages</p>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-start space-x-4">
+          <div class="p-3 rounded-lg bg-green-500/10 text-green-600 font-bold">⚡</div>
+          <div>
+            <h3 class="text-slate-500 text-sm font-medium uppercase tracking-wide">Marginal Energy Cost</h3>
+            <p class="text-2xl font-bold text-slate-800 mt-1">18 Rs/kWh</p>
+            <p class="text-slate-400 text-xs mt-1">Actual cost to serve is lower than billed tariff</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h3 class="text-lg font-bold text-slate-800 mb-4">The Problem: Volatility & Efficiency</h3>
+          <p class="text-slate-600 mb-4 text-sm leading-relaxed">
+            The current regime recovers fixed capacity costs through variable per-unit rates. As consumption drops
+            (solar adoption or economic slowdown), the per-unit rate must rise, driving more consumers off-grid (a “death spiral”).
+          </p>
+          <div class="h-72">
+            <canvas id="chartMarginal"></canvas>
+          </div>
+          <p class="text-xs text-slate-400 mt-3">Chart: Marginal cost (line) and system demand (bars).</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-center">
+          <h3 class="text-lg font-bold text-slate-800 mb-4">The Solution: Subscription Model</h3>
+          <div class="space-y-4">
+            <div class="flex items-center p-4 bg-blue-50 rounded-lg border border-blue-100">
+              <div class="bg-blue-600 text-white px-3 py-2 rounded-full mr-4 font-bold">1</div>
+              <div>
+                <h4 class="font-bold text-blue-900">Subscribe to Capacity (MDI)</h4>
+                <p class="text-sm text-blue-700">Pay a fixed monthly subscription charge based on sanctioned load to secure grid access.</p>
+              </div>
+            </div>
+            <div class="flex items-center p-4 bg-green-50 rounded-lg border border-green-100">
+              <div class="bg-green-600 text-white px-3 py-2 rounded-full mr-4 font-bold">2</div>
+              <div>
+                <h4 class="font-bold text-green-900">Consume Energy at the Margin</h4>
+                <p class="text-sm text-green-700">Consumption is charged at marginal cost (baseline Rs 18/kWh), decoupling volume from fixed costs.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CSC -->
+    <section id="tab-csc" class="space-y-6 hidden">
+      <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex flex-col md:flex-row justify-between items-start mb-6">
+          <div>
+            <h2 class="text-xl font-bold text-slate-800">CSC Subscription Schedule</h2>
+            <p class="text-slate-500 mt-1">Fixed Monthly Charges by MDI Band (Standardized to 35% Load Factor @ Rs 18 marginal).</p>
+          </div>
+          <span class="bg-blue-100 text-blue-700 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide">Phase 1: Opt-In</span>
+        </div>
+
+        <div class="overflow-hidden rounded-lg border border-slate-200 shadow-sm mb-8">
+          <table class="min-w-full text-sm text-left">
+            <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
+              <tr>
+                <th class="px-6 py-4 border-b">Rate Category</th>
+                <th class="px-6 py-4 border-b">Subscription Basis (MDI)</th>
+                <th class="px-6 py-4 border-b text-right">Fixed Price (Rs/kW/Month)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 bg-white">
+              <tr class="hover:bg-amber-50 transition-colors">
+                <td class="px-6 py-4 font-bold text-slate-800">Commercial</td>
+                <td class="px-6 py-4 text-slate-600">Verified MDI (Peak Load)</td>
+                <td class="px-6 py-4 text-right font-bold text-amber-600 text-lg">10,710</td>
+              </tr>
+              <tr class="hover:bg-blue-50 transition-colors">
+                <td class="px-6 py-4 font-bold text-slate-800">Industrial</td>
+                <td class="px-6 py-4 text-slate-600">Sanctioned Load (B-1, B-2, B-3)</td>
+                <td class="px-6 py-4 text-right font-bold text-blue-600 text-lg">5,519</td>
+              </tr>
+              <tr class="hover:bg-emerald-50 transition-colors">
+                <td class="px-6 py-4 font-bold text-slate-800">Domestic</td>
+                <td class="px-6 py-4 text-slate-600">Pooled (&gt;700 Units) Floor</td>
+                <td class="px-6 py-4 text-right font-bold text-emerald-600 text-lg">9,752</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Consumption independence demo -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mt-6">
+          <div class="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+            <h3 class="font-bold text-slate-700">Demonstration: Consumption Independence (Industrial)</h3>
+            <span class="text-xs text-slate-500">Fixed charge constant; variable at Rs 18/unit</span>
+          </div>
+          <div class="p-6">
+            <p class="text-sm text-slate-600 mb-6">
+              Fixed MDI = <b>500 kW</b>, CSC = <b>Rs 5,519/kW</b>, Marginal = <b>Rs 18/unit</b>.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
+              <div class="p-4 rounded-xl border border-red-100 bg-red-50/50">
+                <div class="text-xs font-bold text-red-600 uppercase mb-2">Scenario A: Low Usage</div>
+                <div class="flex justify-between text-sm mb-2">
+                  <span>Consumption:</span>
+                  <span class="mono" id="demoUnitsA"></span>
+                </div>
+                <div class="flex justify-between text-sm mb-4">
+                  <span>Fixed Charge (500kW):</span>
+                  <span class="mono font-bold" id="demoFixedA"></span>
+                </div>
+                <div class="border-t border-red-100 pt-2 flex justify-between items-center">
+                  <span class="text-xs text-slate-500">Effective Rate</span>
+                  <span class="text-xl font-bold text-red-700" id="demoEffA"></span>
+                </div>
+              </div>
+
+              <div class="p-4 rounded-xl border border-green-100 bg-green-50/50">
+                <div class="text-xs font-bold text-green-600 uppercase mb-2">Scenario B: High Usage</div>
+                <div class="flex justify-between text-sm mb-2">
+                  <span>Consumption:</span>
+                  <span class="mono" id="demoUnitsB"></span>
+                </div>
+                <div class="flex justify-between text-sm mb-4">
+                  <span>Fixed Charge (500kW): <span class="ml-2 text-xs bg-blue-100 text-blue-700 px-1 rounded">SAME</span></span>
+                  <span class="mono font-bold" id="demoFixedB"></span>
+                </div>
+                <div class="border-t border-green-100 pt-2 flex justify-between items-center">
+                  <span class="text-xs text-slate-500">Effective Rate</span>
+                  <span class="text-xl font-bold text-green-700" id="demoEffB"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-8 bg-blue-50 p-6 rounded-lg border border-blue-100">
+              <h4 class="font-bold text-blue-900 mb-2">Key Policy Note: 35% Utilization Baseline</h4>
+              <p class="text-sm text-blue-800">
+                The CSC rates are standardized such that a consumer with a <b>35% load factor</b> pays approximately the same as the current average tariff.
+                Consumption above 35% yields savings immediately (effective rate declines toward marginal cost).
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- IMPACT -->
+    <section id="tab-impact" class="hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Controls -->
+        <div class="lg:col-span-4 space-y-6">
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Tariff Calculator</h3>
+
+            <div class="space-y-6">
+              <!-- Segment -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">1. Select Subscription Category</label>
+                <div class="flex rounded-md shadow-sm mb-4">
+                  <button class="seg flex-1 py-2 text-xs font-bold uppercase rounded-l-lg border" data-seg="commercial">Commercial</button>
+                  <button class="seg flex-1 py-2 text-xs font-bold uppercase border" data-seg="industrial">Industrial</button>
+                  <button class="seg flex-1 py-2 text-xs font-bold uppercase rounded-r-lg border" data-seg="domestic">Domestic</button>
+                </div>
+
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">2. Select MDI Schedule (Package)</label>
+                <div class="grid grid-cols-3 gap-2 mb-2" id="mdiProfiles"></div>
+
+                <div class="flex items-center space-x-2 mt-2">
+                  <span class="text-xs text-slate-400">Custom MDI:</span>
+                  <input id="mdiInput" type="number" class="w-20 text-xs border border-slate-300 rounded px-2 py-1" />
+                  <span class="text-xs text-slate-400">kW</span>
+                </div>
+              </div>
+
+              <!-- Load factor -->
+              <div class="border-t border-slate-100 pt-4">
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-3">3. Monthly Consumption / Load Factor</label>
+
+                <div class="mb-4">
+                  <label class="text-xs text-slate-400 mb-1 block">Operational Profile (Load Factor)</label>
+                  <select id="lfSelect" class="w-full text-sm border border-slate-300 rounded-md px-3 py-2 bg-slate-50"></select>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                  <input id="consSlider" type="range" min="1000" step="1000" class="flex-grow h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer" />
+                  <div class="w-24 text-right mono text-sm border border-slate-300 rounded px-2 py-1" id="consLabel"></div>
+                </div>
+                <div class="flex justify-between mt-1">
+                  <p class="text-xs text-slate-400">Manual Adjustment</p>
+                  <p class="text-xs font-bold text-slate-500">LF: <span id="lfLabel"></span>%</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Demand stimulation -->
+          <div class="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-xl border border-indigo-100 shadow-sm">
+            <h4 class="text-sm font-bold text-indigo-900 mb-2">Demand Stimulation</h4>
+            <p class="text-xs text-indigo-700 mb-3">Cost to consume an <b>additional 1,000 units</b>:</p>
+            <div class="flex justify-between items-end border-b border-indigo-200 pb-2 mb-2">
+              <span class="text-xs text-slate-500">Status Quo</span>
+              <span class="mono font-bold text-slate-600" id="legacy1000"></span>
+            </div>
+            <div class="flex justify-between items-end">
+              <span class="text-xs font-bold text-indigo-700">New Policy</span>
+              <span class="mono font-bold text-indigo-700 text-lg" id="new1000"></span>
+            </div>
+            <div class="mt-2 text-right text-xs text-green-600 font-bold" id="cheaperPct"></div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div class="lg:col-span-8 space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+              <div class="text-xs text-slate-400 uppercase font-bold">Status Quo Bill</div>
+              <div class="text-xl font-bold text-slate-800" id="oldBillLabel"></div>
+              <div class="text-xs text-red-500 mt-1" id="oldRateLabel"></div>
+            </div>
+            <div class="bg-blue-600 p-4 rounded-xl border border-blue-700 shadow-sm text-white">
+              <div class="text-xs text-blue-200 uppercase font-bold">New Policy Bill</div>
+              <div class="text-xl font-bold" id="newBillLabel"></div>
+              <div class="text-xs text-blue-100 mt-1" id="effRateLabel"></div>
+            </div>
+            <div class="p-4 rounded-xl border shadow-sm" id="netImpactCard">
+              <div class="text-xs uppercase font-bold" id="netImpactTitle"></div>
+              <div class="text-xl font-bold" id="netImpactPct"></div>
+              <div class="text-xs mt-1" id="netImpactAbs"></div>
+            </div>
+          </div>
+
+          <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h4 class="text-sm font-bold text-slate-700 mb-4 border-b border-slate-100 pb-2">Subscription vs Consumption Breakdown</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div class="space-y-4">
+                <div class="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
+                  <div class="mr-3 font-bold text-blue-600">■</div>
+                  <div class="flex-1">
+                    <div class="text-xs text-blue-700 font-bold uppercase">1. Fixed Subscription</div>
+                    <div class="text-xs text-blue-600" id="fixedDesc"></div>
+                  </div>
+                  <div class="mono font-bold text-blue-800" id="fixedVal"></div>
+                </div>
+
+                <div class="flex items-center p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <div class="mr-3 font-bold text-slate-500">■</div>
+                  <div class="flex-1">
+                    <div class="text-xs text-slate-700 font-bold uppercase">2. Consumption Charge</div>
+                    <div class="text-xs text-slate-500" id="varDesc"></div>
+                  </div>
+                  <div class="mono font-bold text-slate-700" id="varVal"></div>
+                </div>
+
+                <div class="text-xs text-slate-400 italic">
+                  Note: Subscription is fixed. Increasing consumption adds only variable charges at the marginal rate.
+                </div>
+              </div>
+
+              <div class="h-64">
+                <canvas id="chartImpact"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOU -->
+    <section id="tab-tou" class="hidden space-y-6">
+      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center">
+        <div>
+          <h2 class="text-xl font-bold text-slate-800">TOU Optimization Simulator</h2>
+          <p class="text-sm text-slate-500 mt-1">Analyze savings by shifting incremental production to specific time slots.</p>
+        </div>
+        <div class="mt-4 md:mt-0 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 text-xs text-blue-700 font-semibold">
+          Industrial CSC: Rs 5,519/kW Fixed
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-4 space-y-6">
+          <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-4">1. Base Operational Parameters</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Sanctioned Load (MDI)</label>
+                <div class="flex items-center space-x-2">
+                  <input id="touMdi" type="number" class="w-full text-sm border border-slate-300 rounded px-3 py-2" />
+                  <span class="text-xs text-slate-400 font-bold">kW</span>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Base Consumption (35% LF)</label>
+                <div class="bg-slate-100 p-3 rounded text-sm mono text-slate-600" id="touBaseUnits"></div>
+                <div class="text-xs text-slate-400 mt-1">Fixed Cost Breakeven Volume</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide mb-4">2. Incremental Production</h3>
+            <div class="mb-6">
+              <label class="block text-xs font-semibold text-slate-500 mb-2">Additional Units (Above Base)</label>
+              <input id="touIncSlider" type="range" min="0" step="1000" class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer mb-2" />
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-bold text-blue-600 mono" id="touIncUnits"></span>
+                <span class="text-xs text-slate-400">Total LF: <span id="touLF"></span>%</span>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-xs font-semibold text-slate-500">Select Production Time Slot</label>
+              <div class="grid grid-cols-1 gap-2">
+                <button class="touSlot w-full p-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-left" data-slot="sunshine">
+                  <div class="flex justify-between">
+                    <div>
+                      <div class="text-xs font-bold text-slate-700">Sunshine (10am-4pm)</div>
+                      <div class="text-[10px] text-slate-500">Solar Excess Period</div>
+                    </div>
+                    <div class="mono font-bold">Rs 12.5</div>
+                  </div>
+                </button>
+                <button class="touSlot w-full p-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-left" data-slot="midnight">
+                  <div class="flex justify-between">
+                    <div>
+                      <div class="text-xs font-bold text-slate-700">Midnight (12am-8am)</div>
+                      <div class="text-[10px] text-slate-500">Baseload Thermal</div>
+                    </div>
+                    <div class="mono font-bold">Rs 16.0</div>
+                  </div>
+                </button>
+                <button class="touSlot w-full p-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-left" data-slot="shoulder">
+                  <div class="flex justify-between">
+                    <div>
+                      <div class="text-xs font-bold text-slate-700">Shoulder (Regular)</div>
+                      <div class="text-[10px] text-slate-500">Standard Grid Mix</div>
+                    </div>
+                    <div class="mono font-bold">Rs 18.0</div>
+                  </div>
+                </button>
+                <button class="touSlot w-full p-3 rounded-lg border border-slate-200 hover:bg-slate-50 text-left" data-slot="peak">
+                  <div class="flex justify-between">
+                    <div>
+                      <div class="text-xs font-bold text-slate-700">Peak (5pm-9pm)</div>
+                      <div class="text-[10px] text-slate-500">Expensive Peaker Plants</div>
+                    </div>
+                    <div class="mono font-bold">Rs 28.0</div>
+                  </div>
+                </button>
+              </div>
+              <p class="text-[10px] text-slate-400 mt-2">This simulator prices base units at Rs 18, incremental at the selected TOU rate.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-8 space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+              <div class="text-xs text-slate-400 uppercase font-bold mb-1">Blended Rate</div>
+              <div class="flex items-end space-x-2">
+                <span class="text-2xl font-bold text-slate-800" id="touBlend"></span>
+                <span class="text-xs text-green-600 font-bold mb-1">/ unit</span>
+              </div>
+              <div class="text-xs text-slate-400 mt-2">vs Rs 39.9 Status Quo</div>
+            </div>
+            <div class="bg-green-600 p-5 rounded-xl border border-green-700 shadow-sm text-white">
+              <div class="text-xs text-green-200 uppercase font-bold mb-1">Total Monthly Savings</div>
+              <div class="text-2xl font-bold" id="touSavAbs"></div>
+              <div class="text-xs text-green-100 mt-2" id="touSavPct"></div>
+            </div>
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+              <div class="text-xs text-slate-400 uppercase font-bold">Optimization Strategy</div>
+              <div class="text-sm font-bold text-slate-700" id="touStrat"></div>
+              <div class="text-xs text-slate-500" id="touMarg"></div>
+            </div>
+          </div>
+
+          <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h4 class="text-sm font-bold text-slate-700 mb-6">Financial Comparison</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div class="h-64"><canvas id="chartTou"></canvas></div>
+              <div class="space-y-4">
+                <div class="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                  <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Bill Structure (Optimized)</h5>
+                  <div class="flex justify-between text-sm mb-2">
+                    <span class="text-slate-600">1. Fixed CSC Charge</span>
+                    <span class="mono font-bold" id="touFixed"></span>
+                  </div>
+                  <div class="flex justify-between text-sm mb-2">
+                    <span class="text-slate-600">2. Base Energy</span>
+                    <span class="mono font-bold" id="touBaseCost"></span>
+                  </div>
+                  <div class="flex justify-between text-sm pt-2 border-t border-slate-200">
+                    <span class="font-bold">3. Incremental</span>
+                    <span class="mono font-bold" id="touIncCost"></span>
+                  </div>
+                </div>
+                <div class="p-4 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-800" id="touExplain"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODULATOR -->
+    <section id="tab-modulator" class="hidden space-y-6">
+      <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+          <div>
+            <h2 class="text-xl font-bold text-slate-800">Industrial Demand Induction Modulator</h2>
+            <p class="text-sm text-slate-500 mt-1">Visualize savings on incremental energy consumption (kWh).</p>
+          </div>
+          <div class="mt-4 md:mt-0 bg-teal-50 px-4 py-2 rounded-lg border border-teal-100 text-sm font-bold text-teal-700">
+            Policy Analysis Mode
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div class="lg:col-span-4 space-y-6">
+            <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between mb-2">
+                <div class="font-bold text-slate-700 text-sm">Incremental Units Added</div>
+                <span class="bg-white px-2 py-1 rounded border text-blue-600 mono" id="modAddLabel"></span>
+              </div>
+              <div class="text-[10px] text-slate-400 mb-3">Adds usage on top of Base Load (35% LF at 1MW)</div>
+
+              <input id="modSlider" type="range" min="0" step="5000"
+                     class="w-full h-3 bg-slate-300 rounded-lg appearance-none cursor-pointer mb-2" />
+              <div class="flex justify-between text-xs text-slate-400 font-medium">
+                <span>0 Added</span>
+                <span>Total: <span id="modTotal"></span> kWh</span>
+                <span>Max</span>
+              </div>
+            </div>
+
+            <div class="bg-slate-800 p-6 rounded-xl shadow-md border border-slate-700 text-white">
+              <div class="mb-3 border-b border-slate-600 pb-2">
+                <div class="text-xs font-bold text-slate-300 uppercase tracking-widest">Marginal Savings Calculator</div>
+                <div class="text-[10px] text-slate-400">Savings strictly on the added units</div>
+              </div>
+              <div class="space-y-3">
+                <div class="flex justify-between items-center opacity-60">
+                  <span class="text-xs text-slate-300">Old Cost (39.9/unit)</span>
+                  <span class="text-sm mono text-slate-300" id="modOldCost"></span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-xs font-bold">New Cost</span>
+                  <span class="text-lg mono font-bold text-teal-400" id="modNewCost"></span>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-600 flex justify-between items-center bg-slate-700/50 p-2 rounded">
+                <div class="text-xs text-slate-300 font-bold uppercase">Net Benefit</div>
+                <div class="text-xl font-bold" id="modNet"></div>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-bold text-slate-700 mb-3">Incremental Profile</label>
+              <div class="grid grid-cols-1 gap-3">
+                <button class="modProfile flex items-center p-3 rounded-lg border border-slate-200 hover:bg-slate-50" data-prof="standard">
+                  <div class="w-4 h-4 rounded-full bg-blue-500 mr-3"></div>
+                  <div class="text-left flex-1">
+                    <div class="text-xs font-bold text-slate-800">Standard Grid Mix</div>
+                    <div class="text-[10px] text-slate-500">Regular Production (Rs 18.0)</div>
+                  </div>
+                </button>
+                <button class="modProfile flex items-center p-3 rounded-lg border border-slate-200 hover:bg-slate-50" data-prof="sunshine">
+                  <div class="w-4 h-4 rounded-full bg-orange-500 mr-3"></div>
+                  <div class="text-left flex-1">
+                    <div class="text-xs font-bold text-slate-800">Sunshine Hours</div>
+                    <div class="text-[10px] text-slate-500">Daytime 10am–4pm (Rs 12.5)</div>
+                  </div>
+                </button>
+                <button class="modProfile flex items-center p-3 rounded-lg border border-slate-200 hover:bg-slate-50" data-prof="midnight">
+                  <div class="w-4 h-4 rounded-full bg-indigo-500 mr-3"></div>
+                  <div class="text-left flex-1">
+                    <div class="text-xs font-bold text-slate-800">Midnight Shift</div>
+                    <div class="text-[10px] text-slate-500">Night 12am–8am (Rs 16.0)</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-8 space-y-8">
+            <div>
+              <h4 class="text-sm font-bold text-slate-700 mb-4">Total Monthly Bill Comparison</h4>
+              <div class="h-72 w-full bg-slate-50 rounded-xl border border-slate-100 p-4">
+                <canvas id="chartModBar"></canvas>
+              </div>
+            </div>
+            <div>
+              <h4 class="text-sm font-bold text-slate-700 mb-4">Effective Unit Rate vs Volume</h4>
+              <div class="h-72 w-full bg-slate-50 rounded-xl border border-slate-100 p-4">
+                <canvas id="chartModCurve"></canvas>
+              </div>
+              <p class="text-xs text-slate-500 mt-2 text-center italic">
+                As added kWh increases, the effective rate drops toward the marginal floor.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GEN -->
+    <section id="tab-gen" class="hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h3 class="font-bold text-slate-800 mb-4">Generation Mix Context</h3>
+          <p class="text-sm text-slate-600 mb-4">
+            The marginal price is driven largely by the thermal stack (RLNG/Gas/Coal). Solar abundance during the day creates
+            a “Sunshine” slot opportunity, while evening peaks engage expensive peakers.
+          </p>
+          <div class="h-64">
+            <canvas id="chartGen"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h3 class="font-bold text-slate-800 mb-4">Why Opt-In?</h3>
+          <ul class="space-y-4">
+            <li class="flex items-start">
+              <div class="bg-blue-100 p-2 rounded-full mr-3 text-blue-600 mt-1 font-bold">1</div>
+              <div>
+                <h4 class="font-bold text-sm text-slate-800">Consumer Choice</h4>
+                <p class="text-xs text-slate-500">High load factor consumers benefit immediately. Low usage can stay on legacy tariff.</p>
+              </div>
+            </li>
+            <li class="flex items-start">
+              <div class="bg-green-100 p-2 rounded-full mr-3 text-green-600 mt-1 font-bold">2</div>
+              <div>
+                <h4 class="font-bold text-sm text-slate-800">Incremental Consumption</h4>
+                <p class="text-xs text-slate-500">Pricing energy at the margin incentivizes higher utilization, raising demand and production.</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="max-w-7xl mx-auto px-4 text-center text-slate-400 text-xs pb-8">
+    <p>Confidential • For Internal Policy Discussion Only • Data Sources: FY 2024-25 Actuals & Policy Note October 2025</p>
+    <p class="mt-1">All simulations are indicative. Actual savings depend on sanctioned load and TOU profiles.</p>
+  </footer>
+
+<script>
+/* -----------------------------
+   DATA CONSTANTS (your logic)
+------------------------------*/
+const marginalCostData = [
+  { hour: 0, demand: 15174, cost: 24.74 }, { hour: 1, demand: 14956, cost: 23.97 },
+  { hour: 2, demand: 14623, cost: 22.10 }, { hour: 3, demand: 14287, cost: 19.90 },
+  { hour: 4, demand: 13867, cost: 18.38 }, { hour: 5, demand: 13889, cost: 19.54 },
+  { hour: 6, demand: 13589, cost: 21.25 }, { hour: 7, demand: 12704, cost: 19.48 },
+  { hour: 8, demand: 11949, cost: 15.79 }, { hour: 9, demand: 11467, cost: 14.50 },
+  { hour: 10, demand: 11500, cost: 12.20 }, { hour: 11, demand: 11800, cost: 10.50 },
+  { hour: 12, demand: 12200, cost: 9.80 },  { hour: 13, demand: 12800, cost: 10.20 },
+  { hour: 14, demand: 13500, cost: 12.50 }, { hour: 15, demand: 14100, cost: 15.80 },
+  { hour: 16, demand: 14800, cost: 19.20 }, { hour: 17, demand: 15500, cost: 24.50 },
+  { hour: 18, demand: 16200, cost: 28.90 }, { hour: 19, demand: 16500, cost: 29.50 },
+  { hour: 20, demand: 16300, cost: 27.80 }, { hour: 21, demand: 15900, cost: 26.50 },
+  { hour: 22, demand: 15600, cost: 25.80 }, { hour: 23, demand: 15300, cost: 25.10 },
+];
+
+const ESTIMATED_VARIABLE_RATE = 18.0;
+const HOURS_IN_MONTH = 720;
+
+const policyAnchors = {
+  commercial: {
+    csc: 10710, currentAvg: 60.5, label: "Commercial",
+    profiles: [{ label: "Small Shop", mdi: 5 }, { label: "Showroom", mdi: 20 }, { label: "Plaza", mdi: 100 }]
+  },
+  industrial: {
+    csc: 5519, currentAvg: 39.9, label: "Industrial",
+    profiles: [{ label: "Small Mfg (B-1)", mdi: 40 }, { label: "Medium (B-2)", mdi: 400 }, { label: "Large (B-3)", mdi: 2000 }]
+  },
+  domestic: {
+    csc: 9752, currentAvg: 56.7, label: "Domestic",
+    profiles: [{ label: "Large Home", mdi: 10 }, { label: "Farmhouse", mdi: 25 }, { label: "Estate", mdi: 50 }]
+  }
+};
+
+const touRates = {
+  sunshine: { rate: 12.5, label: "Sunshine (10am-4pm)" },
+  shoulder: { rate: 18.0, label: "Shoulder (Regular)" },
+  peak:     { rate: 28.0, label: "Peak (5pm-9pm)" },
+  midnight: { rate: 16.0, label: "Midnight (12am-8am)" }
+};
+
+const loadFactorOptions = [
+  { label: "Select Profile...", value: null },
+  { label: "Peaking / Low (15%)", value: 0.15 },
+  { label: "Single Shift (30%)", value: 0.30 },
+  { label: "Breakeven Baseline (35%)", value: 0.35 },
+  { label: "Mixed / Commercial (45%)", value: 0.45 },
+  { label: "Double Shift (60%)", value: 0.60 },
+  { label: "Heavy Ind. (75%)", value: 0.75 },
+  { label: "Continuous 24/7 (90%)", value: 0.90 },
+];
+
+/* -----------------------------
+   UTIL
+------------------------------*/
+const fmt = {
+  int: (n) => Number(n).toLocaleString(),
+  rs: (n) => `Rs ${Number(n).toLocaleString()}`,
+  lacs: (n) => `Rs ${(Number(n) / 100000).toFixed(2)} Lacs`,
+  million: (n) => `Rs ${(Number(n) / 1000000).toFixed(2)} M`,
+};
+
+/* -----------------------------
+   TAB NAVIGATION
+------------------------------*/
+const tabs = document.querySelectorAll(".tab");
+const sections = {
+  background: document.getElementById("tab-background"),
+  csc: document.getElementById("tab-csc"),
+  impact: document.getElementById("tab-impact"),
+  tou: document.getElementById("tab-tou"),
+  modulator: document.getElementById("tab-modulator"),
+  gen: document.getElementById("tab-gen"),
+};
+
+tabs.forEach(btn => {
+  btn.addEventListener("click", () => {
+    const target = btn.dataset.tab;
+    // toggle sections
+    Object.values(sections).forEach(s => s.classList.add("hidden"));
+    sections[target].classList.remove("hidden");
+
+    // active styling
+    tabs.forEach(b => b.classList.remove("tab-active"));
+    tabs.forEach(b => b.classList.add("tab-idle"));
+    btn.classList.add("tab-active");
+    btn.classList.remove("tab-idle");
+  });
+});
+
+/* -----------------------------
+   CHARTS (Chart.js)
+------------------------------*/
+let chartMarginal, chartImpact, chartTou, chartGen, chartModBar, chartModCurve;
+
+function initCharts() {
+  // Background: marginal cost + demand
+  const ctxM = document.getElementById("chartMarginal");
+  chartMarginal = new Chart(ctxM, {
+    type: "bar",
+    data: {
+      labels: marginalCostData.map(d => d.hour),
+      datasets: [
+        {
+          type: "bar",
+          label: "System Demand (MW)",
+          data: marginalCostData.map(d => d.demand),
+          yAxisID: "yDemand",
+        },
+        {
+          type: "line",
+          label: "Marginal Cost (Rs/kWh)",
+          data: marginalCostData.map(d => d.cost),
+          yAxisID: "yCost",
+          tension: 0.25,
+          pointRadius: 0,
+          borderWidth: 3,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        yDemand: { position: "right", title: { display: true, text: "Demand (MW)" } },
+        yCost: { position: "left", title: { display: true, text: "Cost (Rs/kWh)" }, grid: { drawOnChartArea: false } }
+      }
+    }
+  });
+
+  // Impact stacked bar
+  const ctxI = document.getElementById("chartImpact");
+  chartImpact = new Chart(ctxI, {
+    type: "bar",
+    data: {
+      labels: ["Status Quo", "Proposed Policy"],
+      datasets: [
+        { label: "Fixed (CSC)", data: [0, 0] },
+        { label: "Variable (Energy)", data: [0, 0] },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom" } },
+      scales: { x: { stacked: true }, y: { stacked: true } }
+    }
+  });
+
+  // TOU comparison
+  const ctxT = document.getElementById("chartTou");
+  chartTou = new Chart(ctxT, {
+    type: "bar",
+    data: {
+      labels: ["Status Quo", "Optimized TOU"],
+      datasets: [{ label: "Monthly Bill (Rs)", data: [0, 0] }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
+
+  // Generation mix
+  const ctxG = document.getElementById("chartGen");
+  chartGen = new Chart(ctxG, {
+    type: "bar",
+    data: {
+      labels: ["Hydel","RLNG","Coal","Nuclear","Gas","Solar/Wind"],
+      datasets: [{ label: "Share %", data: [29.4,18.1,16.2,14.5,9.8,6.0] }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
+  });
+
+  // Modulator charts
+  chartModBar = new Chart(document.getElementById("chartModBar"), {
+    type: "bar",
+    data: {
+      labels: ["Total Bill"],
+      datasets: [
+        { label: "Status Quo (Legacy)", data: [0] },
+        { label: "New Policy (Subscription)", data: [0] }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
+  });
+
+  chartModCurve = new Chart(document.getElementById("chartModCurve"), {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        { label: "Status Quo (Avg)", data: [], borderDash: [6,4], pointRadius: 0, borderWidth: 2 },
+        { label: "New Policy Effective Rate", data: [], pointRadius: 0, borderWidth: 3 },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom" } }
+    }
+  });
+}
+
+/* -----------------------------
+   CSC DEMO
+------------------------------*/
+function renderCscDemo() {
+  const fixedMDI = 500;
+  const rate = 5519;
+  const marginal = 18.0;
+
+  const unitsA = 100000;
+  const fixedA = fixedMDI * rate;
+  const varA = unitsA * marginal;
+  const totalA = fixedA + varA;
+  const effA = totalA / unitsA;
+
+  const unitsB = 250000;
+  const fixedB = fixedMDI * rate;
+  const varB = unitsB * marginal;
+  const totalB = fixedB + varB;
+  const effB = totalB / unitsB;
+
+  document.getElementById("demoUnitsA").textContent = `${fmt.int(unitsA)} Units`;
+  document.getElementById("demoFixedA").textContent = fmt.million(fixedA);
+  document.getElementById("demoEffA").textContent = `Rs ${effA.toFixed(1)}/unit`;
+
+  document.getElementById("demoUnitsB").textContent = `${fmt.int(unitsB)} Units`;
+  document.getElementById("demoFixedB").textContent = fmt.million(fixedB);
+  document.getElementById("demoEffB").textContent = `Rs ${effB.toFixed(1)}/unit`;
+}
+
+/* -----------------------------
+   IMPACT TAB (calculator)
+------------------------------*/
+let impactState = {
+  segment: "industrial",
+  mdi: 200,
+  consumption: 50000,
+  targetLF: null
+};
+
+function setSegButtons() {
+  document.querySelectorAll(".seg").forEach(b => {
+    const active = b.dataset.seg === impactState.segment;
+    b.className = `seg flex-1 py-2 text-xs font-bold uppercase border ${
+      active ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+    } ${b.dataset.seg === "commercial" ? "rounded-l-lg" : b.dataset.seg === "domestic" ? "rounded-r-lg" : ""}`;
+  });
+}
+
+function renderMdiProfiles() {
+  const box = document.getElementById("mdiProfiles");
+  box.innerHTML = "";
+  const cfg = policyAnchors[impactState.segment];
+  cfg.profiles.forEach(p => {
+    const active = impactState.mdi === p.mdi;
+    const btn = document.createElement("button");
+    btn.className = `p-2 border rounded-lg text-left hover:bg-slate-50 transition-all ${
+      active ? "ring-2 ring-blue-500 border-blue-500 bg-blue-50" : "border-slate-200"
+    }`;
+    btn.innerHTML = `<div class="text-xs font-bold text-slate-700">${p.label}</div>
+                     <div class="text-xs text-slate-500">${p.mdi} kW</div>`;
+    btn.onclick = () => {
+      impactState.mdi = p.mdi;
+      if (impactState.targetLF !== null) {
+        impactState.consumption = Math.round(impactState.mdi * HOURS_IN_MONTH * impactState.targetLF);
+      }
+      syncImpactControls();
+      renderImpact();
+    };
+    box.appendChild(btn);
+  });
+}
+
+function renderLfSelect() {
+  const sel = document.getElementById("lfSelect");
+  sel.innerHTML = "";
+  loadFactorOptions.forEach(opt => {
+    const o = document.createElement("option");
+    o.value = opt.value === null ? "" : opt.value;
+    o.textContent = opt.label;
+    sel.appendChild(o);
+  });
+  sel.value = impactState.targetLF === null ? "" : String(impactState.targetLF);
+}
+
+function syncImpactControls() {
+  setSegButtons();
+  renderMdiProfiles();
+  document.getElementById("mdiInput").value = impactState.mdi;
+
+  const maxPotential = impactState.mdi * HOURS_IN_MONTH;
+  const slider = document.getElementById("consSlider");
+  slider.max = String(maxPotential);
+  slider.value = String(impactState.consumption);
+
+  document.getElementById("consLabel").textContent = fmt.int(impactState.consumption);
+  const lfPct = ((impactState.consumption / maxPotential) * 100);
+  document.getElementById("lfLabel").textContent = lfPct.toFixed(1);
+
+  renderLfSelect();
+}
+
+function renderImpact() {
+  const cfg = policyAnchors[impactState.segment];
+  const maxPotential = impactState.mdi * HOURS_IN_MONTH;
+
+  const oldBill = impactState.consumption * cfg.currentAvg;
+  const fixedCharge = impactState.mdi * cfg.csc;
+  const variableCharge = impactState.consumption * ESTIMATED_VARIABLE_RATE;
+  const newBill = fixedCharge + variableCharge;
+
+  const savings = oldBill - newBill;
+  const pctSavings = (savings / oldBill) * 100;
+  const effRate = newBill / impactState.consumption;
+
+  document.getElementById("oldBillLabel").textContent = fmt.lacs(oldBill);
+  document.getElementById("oldRateLabel").textContent = `@${cfg.currentAvg} Rs/Unit (Avg)`;
+  document.getElementById("newBillLabel").textContent = fmt.lacs(newBill);
+  document.getElementById("effRateLabel").textContent = `@${effRate.toFixed(1)} Rs/Unit (Effective)`;
+
+  const net = document.getElementById("netImpactCard");
+  const title = document.getElementById("netImpactTitle");
+  const pct = document.getElementById("netImpactPct");
+  const abs = document.getElementById("netImpactAbs");
+
+  if (savings >= 0) {
+    net.className = "p-4 rounded-xl border shadow-sm bg-green-50 border-green-200";
+    title.className = "text-xs uppercase font-bold text-green-600";
+    pct.className = "text-xl font-bold text-green-800";
+    abs.className = "text-xs mt-1 text-green-700";
+    title.textContent = "Net Impact";
+    pct.textContent = `Savings: ${pctSavings.toFixed(1)}%`;
+    abs.textContent = fmt.rs(Math.abs(savings));
+  } else {
+    net.className = "p-4 rounded-xl border shadow-sm bg-red-50 border-red-200";
+    title.className = "text-xs uppercase font-bold text-red-600";
+    pct.className = "text-xl font-bold text-red-800";
+    abs.className = "text-xs mt-1 text-red-700";
+    title.textContent = "Net Impact";
+    pct.textContent = `Increase: ${Math.abs(pctSavings).toFixed(1)}%`;
+    abs.textContent = fmt.rs(Math.abs(savings));
+  }
+
+  document.getElementById("fixedDesc").textContent = `Based on ${impactState.mdi} kW MDI @ Rs ${fmt.int(cfg.csc)}`;
+  document.getElementById("fixedVal").textContent = fmt.rs(fixedCharge);
+  document.getElementById("varDesc").textContent = `Based on ${fmt.int(impactState.consumption)} Units @ Rs ${ESTIMATED_VARIABLE_RATE}`;
+  document.getElementById("varVal").textContent = fmt.rs(variableCharge);
+
+  // Demand stimulation
+  const legacy1000 = 1000 * cfg.currentAvg;
+  const new1000 = 1000 * ESTIMATED_VARIABLE_RATE;
+  document.getElementById("legacy1000").textContent = fmt.rs(legacy1000);
+  document.getElementById("new1000").textContent = fmt.rs(new1000);
+  document.getElementById("cheaperPct").textContent = `${(100 - (new1000/legacy1000)*100).toFixed(0)}% Cheaper at the margin`;
+
+  // Chart update (stacked)
+  chartImpact.data.datasets[0].data = [0, fixedCharge];
+  chartImpact.data.datasets[1].data = [oldBill, variableCharge];
+  chartImpact.update();
+}
+
+/* -----------------------------
+   TOU TAB
+------------------------------*/
+let touState = {
+  mdi: 2000,
+  baseLF: 0.35,
+  incrementalUnits: 100000,
+  slot: "sunshine"
+};
+
+function renderTou() {
+  const cfg = policyAnchors.industrial;
+
+  const baseUnits = Math.round(touState.mdi * HOURS_IN_MONTH * touState.baseLF);
+  const maxUnits = touState.mdi * HOURS_IN_MONTH;
+  const maxInc = Math.max(0, Math.round(maxUnits * 0.65));
+
+  document.getElementById("touBaseUnits").textContent = `${fmt.int(baseUnits)} Units`;
+
+  const incSlider = document.getElementById("touIncSlider");
+  incSlider.max = String(maxInc);
+  incSlider.value = String(touState.incrementalUnits);
+
+  const totalUnits = baseUnits + touState.incrementalUnits;
+  const totalLF = ((totalUnits / (touState.mdi * HOURS_IN_MONTH)) * 100).toFixed(1);
+  document.getElementById("touIncUnits").textContent = `+${fmt.int(touState.incrementalUnits)} Units`;
+  document.getElementById("touLF").textContent = totalLF;
+
+  const legacyBill = totalUnits * cfg.currentAvg;
+  const fixedCharge = touState.mdi * cfg.csc;
+  const baseEnergy = baseUnits * ESTIMATED_VARIABLE_RATE;
+  const incRate = touRates[touState.slot].rate;
+  const incCost = touState.incrementalUnits * incRate;
+  const newBill = fixedCharge + baseEnergy + incCost;
+
+  const savings = legacyBill - newBill;
+  const savPct = (savings / legacyBill) * 100;
+  const blended = newBill / totalUnits;
+
+  document.getElementById("touBlend").textContent = `Rs ${blended.toFixed(1)}`;
+  document.getElementById("touSavAbs").textContent = fmt.lacs(savings);
+  document.getElementById("touSavPct").textContent = `${savPct.toFixed(1)}% Reduction in Bill`;
+  document.getElementById("touStrat").textContent = `Shift incremental to ${touRates[touState.slot].label.split("(")[0].trim()}`;
+  document.getElementById("touMarg").textContent = `Marginal Input: Rs ${incRate}/unit`;
+
+  document.getElementById("touFixed").textContent = fmt.rs(fixedCharge);
+  document.getElementById("touBaseCost").textContent = fmt.rs(baseEnergy);
+  document.getElementById("touIncCost").textContent = fmt.rs(incCost);
+
+  document.getElementById("touExplain").textContent =
+    `By shifting the additional ${fmt.int(touState.incrementalUnits)} units to the "${touRates[touState.slot].label}" slot, ` +
+    `you capture a marginal rate of Rs ${incRate}. This brings overall average cost down to Rs ${blended.toFixed(1)}/unit.`;
+
+  chartTou.data.datasets[0].data = [legacyBill, newBill];
+  chartTou.update();
+}
+
+/* -----------------------------
+   MODULATOR TAB
+------------------------------*/
+let modState = {
+  mdi: 1000,
+  baseLF: 0.35,
+  additionalUnits: 50000,
+  profile: "standard" // standard=18, sunshine=12.5, midnight=16
+};
+
+function modRate() {
+  if (modState.profile === "sunshine") return 12.5;
+  if (modState.profile === "midnight") return 16.0;
+  return 18.0;
+}
+
+function renderModulator() {
+  const cfg = policyAnchors.industrial;
+
+  const maxUnits = modState.mdi * HOURS_IN_MONTH;
+  const baseUnits = Math.round(maxUnits * modState.baseLF);
+  const maxAdditional = maxUnits - baseUnits;
+
+  const slider = document.getElementById("modSlider");
+  slider.max = String(maxAdditional);
+  slider.value = String(modState.additionalUnits);
+
+  const currentUnits = baseUnits + modState.additionalUnits;
+  document.getElementById("modAddLabel").textContent = `+${fmt.int(modState.additionalUnits)} kWh`;
+  document.getElementById("modTotal").textContent = fmt.int(currentUnits);
+
+  const variableRate = modRate();
+
+  const oldBill = currentUnits * cfg.currentAvg;
+  const fixedCharge = modState.mdi * cfg.csc;
+  const newBill = fixedCharge + (currentUnits * variableRate);
+
+  const oldCostAdditional = modState.additionalUnits * cfg.currentAvg;
+  const newCostAdditional = modState.additionalUnits * variableRate;
+  const marginalSavings = oldCostAdditional - newCostAdditional;
+
+  document.getElementById("modOldCost").textContent = fmt.rs(oldCostAdditional);
+  document.getElementById("modNewCost").textContent = fmt.rs(newCostAdditional);
+  document.getElementById("modNet").textContent = `${fmt.rs(marginalSavings)} Saved`;
+
+  // Charts
+  chartModBar.data.datasets[0].data = [oldBill];
+  chartModBar.data.datasets[1].data = [newBill];
+  chartModBar.update();
+
+  // Curve: effective rate vs units
+  const labels = [];
+  const oldLine = [];
+  const newLine = [];
+  for (let u = baseUnits; u <= maxUnits; u += 20000) {
+    labels.push(`${Math.round(u/1000)}k`);
+    oldLine.push(cfg.currentAvg);
+    const bill = fixedCharge + (u * variableRate);
+    newLine.push(bill / u);
+  }
+  chartModCurve.data.labels = labels;
+  chartModCurve.data.datasets[0].data = oldLine;
+  chartModCurve.data.datasets[1].data = newLine;
+  chartModCurve.update();
+}
+
+/* -----------------------------
+   WIRE UP CONTROLS
+------------------------------*/
+function wireControls() {
+  // Impact segment buttons
+  document.querySelectorAll(".seg").forEach(b => {
+    b.addEventListener("click", () => {
+      impactState.segment = b.dataset.seg;
+      const cfg = policyAnchors[impactState.segment];
+      // keep consumption in bounds after segment change
+      impactState.mdi = cfg.profiles[0].mdi;
+      impactState.consumption = Math.max(1000, Math.round(impactState.mdi * HOURS_IN_MONTH * 0.35));
+      impactState.targetLF = 0.35;
+      syncImpactControls();
+      renderImpact();
+    });
+  });
+
+  // Custom MDI input
+  document.getElementById("mdiInput").addEventListener("input", (e) => {
+    const v = Number(e.target.value || 0);
+    if (!Number.isFinite(v) || v <= 0) return;
+    impactState.mdi = v;
+    if (impactState.targetLF !== null) {
+      impactState.consumption = Math.round(impactState.mdi * HOURS_IN_MONTH * impactState.targetLF);
+    }
+    syncImpactControls();
+    renderImpact();
+  });
+
+  // Load factor dropdown
+  document.getElementById("lfSelect").addEventListener("change", (e) => {
+    const val = e.target.value === "" ? null : parseFloat(e.target.value);
+    impactState.targetLF = val;
+    if (val !== null) {
+      impactState.consumption = Math.round(impactState.mdi * HOURS_IN_MONTH * val);
+    }
+    syncImpactControls();
+    renderImpact();
+  });
+
+  // Consumption slider
+  document.getElementById("consSlider").addEventListener("input", (e) => {
+    impactState.consumption = Number(e.target.value);
+    impactState.targetLF = null; // manual breaks lock
+    syncImpactControls();
+    renderImpact();
+  });
+
+  // TOU
+  const touMdi = document.getElementById("touMdi");
+  touMdi.value = touState.mdi;
+  touMdi.addEventListener("input", (e) => {
+    const v = Number(e.target.value || 0);
+    if (!Number.isFinite(v) || v <= 0) return;
+    touState.mdi = v;
+    renderTou();
+  });
+
+  document.getElementById("touIncSlider").addEventListener("input", (e) => {
+    touState.incrementalUnits = Number(e.target.value);
+    renderTou();
+  });
+
+  document.querySelectorAll(".touSlot").forEach(btn => {
+    btn.addEventListener("click", () => {
+      touState.slot = btn.dataset.slot;
+      // UI highlight
+      document.querySelectorAll(".touSlot").forEach(b => b.classList.remove("ring-2","ring-blue-500","bg-blue-50"));
+      btn.classList.add("ring-2","ring-blue-500","bg-blue-50");
+      renderTou();
+    });
+  });
+
+  // Modulator
+  document.getElementById("modSlider").addEventListener("input", (e) => {
+    modState.additionalUnits = Number(e.target.value);
+    renderModulator();
+  });
+
+  document.querySelectorAll(".modProfile").forEach(btn => {
+    btn.addEventListener("click", () => {
+      modState.profile = btn.dataset.prof;
+      document.querySelectorAll(".modProfile").forEach(b => b.classList.remove("ring-2","ring-blue-500","bg-blue-50"));
+      btn.classList.add("ring-2","ring-blue-500","bg-blue-50");
+      renderModulator();
+    });
+  });
+}
+
+/* -----------------------------
+   INIT
+------------------------------*/
+(function init() {
+  initCharts();
+  renderCscDemo();
+
+  // Init Impact defaults + UI
+  impactState.segment = "industrial";
+  impactState.mdi = 200;
+  impactState.targetLF = 0.35;
+  impactState.consumption = Math.round(impactState.mdi * HOURS_IN_MONTH * impactState.targetLF);
+
+  // Fill LF dropdown
+  const sel = document.getElementById("lfSelect");
+  loadFactorOptions.forEach(opt => {
+    const o = document.createElement("option");
+    o.value = opt.value === null ? "" : opt.value;
+    o.textContent = opt.label;
+    sel.appendChild(o);
+  });
+
+  syncImpactControls();
+  renderImpact();
+
+  // Init TOU
+  document.querySelector('.touSlot[data-slot="sunshine"]').classList.add("ring-2","ring-blue-500","bg-blue-50");
+  renderTou();
+
+  // Init Modulator
+  document.querySelector('.modProfile[data-prof="standard"]').classList.add("ring-2","ring-blue-500","bg-blue-50");
+  // set slider max after compute
+  const maxUnits = modState.mdi * HOURS_IN_MONTH;
+  const baseUnits = Math.round(maxUnits * modState.baseLF);
+  const maxAdditional = maxUnits - baseUnits;
+  document.getElementById("modSlider").max = String(maxAdditional);
+  renderModulator();
+
+  wireControls();
+})();
+</script>
+
+</body>
+</html>
